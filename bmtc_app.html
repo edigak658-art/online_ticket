@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="kn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMTC Smart Ticket</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #121212; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; color: white; }
+        .phone-container { width: 360px; height: 640px; background: #1e1e1e; border: 8px solid #333; border-radius: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative; overflow: hidden; display: flex; flex-direction: column; }
+        .app-bar { background: #0052cc; padding: 20px 15px 15px 15px; text-align: center; font-size: 18px; font-weight: bold; }
+        .content { padding: 15px; flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow-y: auto; }
+        .card { background: #2d2d2d; border-radius: 15px; padding: 20px; width: 90%; text-align: center; }
+        button { background: #0052cc; color: white; border: none; padding: 12px; font-size: 16px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 15px; font-weight: bold; }
+        select, input { width: 100%; padding: 10px; margin: 6px 0; font-size: 15px; border-radius: 8px; border: 1px solid #444; background: #3d3d3d; color: white; box-sizing: border-box; }
+        .passenger-row { display: flex; justify-content: space-between; gap: 10px; width: 100%; }
+        .passenger-col { flex: 1; display: flex; flex-direction: column; }
+        
+        /* Official Ticket Style */
+        .ticket-box { border: 2px dashed #28a745; background: #1b3822; padding: 15px; border-radius: 10px; text-align: left; margin-top: 5px; width: 90%; font-size: 14px; line-height: 1.6; }
+        .ticket-header { text-align: center; font-weight: bold; color: #28a745; font-size: 16px; margin-bottom: 10px; border-bottom: 1px dashed #28a745; padding-bottom: 5px; }
+        .tkt-row { display: flex; justify-content: space-between; margin: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 4px; }
+        .tkt-label { color: #aaa; font-weight: 500; }
+        .tkt-value { color: #fff; font-weight: bold; text-align: right; }
+        .step-title { margin-top: 0; color: #0084ff; font-size: 20px; }
+        .status-verified { text-align: center; color: #2ecc71; font-weight: bold; margin-top: 12px; font-size: 15px; background: rgba(46, 204, 113, 0.1); padding: 6px; border-radius: 4px; letter-spacing: 0.5px; }
+    </style>
+</head>
+<body>
+
+<div class="phone-container">
+    <div class="app-bar">BMTC Namma Ticket</div>
+    
+    <div class="content">
+        <div class="card" id="step1">
+            <h3 class="step-title">Step 1: Scan Bus QR</h3>
+            <div style="background: #3d3d3d; padding: 30px; border-radius: 10px; margin: 15px 0;">
+                <span style="font-size: 40px;">📷</span>
+                <p style="margin: 5px 0 0 0; font-size: 12px; color: #aaa;">[Camera Active]</p>
+            </div>
+            <button onclick="goToStep(2)">Scan QR (Bus KA-01-F-1234)</button>
+        </div>
+
+        <div class="card" id="step2" style="display:none;">
+            <h3 class="step-title">Step 2: Ticket Details</h3>
+            
+            <label style="align-self: flex-start; font-size: 11px; color: #aaa;">Source:</label>
+            <select id="fromStop" onchange="calcFare()">
+                <option value="Yeshwanthpur">Yeshwanthpur</option>
+                <option value="Krishnarajapura">Krishnarajapura</option>
+                <option value="Majestic">Majestic (KBS)</option>
+                <option value="Silk Board">Silk Board</option>
+                <option value="Hebbal">Hebbal</option>
+                <option value="Indiranagar">Indiranagar</option>
+            </select>
+            
+            <label style="align-self: flex-start; font-size: 11px; color: #aaa;">Destination:</label>
+            <select id="toStop" onchange="calcFare()">
+                <option value="0">-- Select Destination --</option>
+                <option value="Krishnarajapura">Krishnarajapura</option>
+                <option value="Yeshwanthpur">Yeshwanthpur</option>
+                <option value="Majestic">Majestic (KBS)</option>
+                <option value="Silk Board">Silk Board</option>
+                <option value="Hebbal">Hebbal</option>
+            </select>
+
+            <div class="passenger-row">
+                <div class="passenger-col">
+                    <label style="align-self: flex-start; font-size: 11px; color: #aaa;">Adult (Full):</label>
+                    <select id="adultCount" onchange="calcFare()">
+                        <option value="1">1 Adult</option>
+                        <option value="2">2 Adults</option>
+                        <option value="3">3 Adults</option>
+                        <option value="4">4 Adults</option>
+                        <option value="0">0 Adult</option>
+                    </select>
+                </div>
+                <div class="passenger-col">
+                    <label style="align-self: flex-start; font-size: 11px; color: #aaa;">Child (Half):</label>
+                    <select id="childCount" onchange="calcFare()">
+                        <option value="0">0 Child</option>
+                        <option value="1">1 Child</option>
+                        <option value="2">2 Children</option>
+                        <option value="3">3 Children</option>
+                    </select>
+                </div>
+            </div>
+            
+            <h2 id="fareText" style="margin: 8px 0 0 0; color: #fff;">Fare: ₹0</h2>
+            <button onclick="goToStep(3)">Confirm & Pay via UPI</button>
+        </div>
+
+        <div class="card" id="step3" style="display:none;">
+            <h3 class="step-title" style="color: #00b386;">Step 3: UPI Payment</h3>
+            <h1 id="payAmount" style="margin: 10px 0; color: #00b386;"></h1>
+            <input type="password" id="upiPin" maxlength="6" placeholder="Enter UPI PIN" style="letter-spacing: 5px; text-align: center;">
+            <button onclick="goToStep(4)" style="background: #00b386;">Pay Securely</button>
+        </div>
+
+        <div class="card" id="step4" style="display:none; width: 95%; padding: 10px;">
+            <h3 style="color: #28a745; margin: 5px 0;">✔ Payment Success</h3>
+            
+            <div class="ticket-box">
+                <div class="ticket-header">BMTC DIGITAL RECEIPT</div>
+                
+                <div class="tkt-row">
+                    <span class="tkt-label">Journey Type:</span>
+                    <span class="tkt-value">Single Journey</span>
+                </div>
+                <div class="tkt-row">
+                    <span class="tkt-label">Passenger:</span>
+                    <span class="tkt-value" id="tktPassengers">Adult: 1, Child: 0</span>
+                </div>
+                <div class="tkt-row">
+                    <span class="tkt-label">Source:</span>
+                    <span class="tkt-value" id="tktFrom"></span>
+                </div>
+                <div class="tkt-row">
+                    <span class="tkt-label">Destination:</span>
+                    <span class="tkt-value" id="tktTo"></span>
+                </div>
+                <div class="tkt-row">
+                    <span class="tkt-label">Paid Amount:</span>
+                    <span class="tkt-value" style="color: #2ecc71;" id="tktFare"></span>
+                </div>
+                <div class="tkt-row">
+                    <span class="tkt-label">Issued On:</span>
+                    <span class="tkt-value" style="color: #ffcc00;" id="tktIssued"></span>
+                </div>
+                <div class="tkt-row">
+                    <span class="tkt-label">Payment Id:</span>
+                    <span class="tkt-value">37472024085</span>
+                </div>
+                <div class="tkt-row" style="flex-direction: column; border: none;">
+                    <span class="tkt-label">Ticket No:</span>
+                    <span class="tkt-value" style="text-align: left; font-family: monospace; font-size: 13px; color: #ffcc00; margin-top: 2px;" id="tktNo"></span>
+                </div>
+                
+                <div class="status-verified">✔ VALID FOR 1 JOURNEY</div>
+            </div>
+            <p style="font-size: 11px; color: #888; margin: 8px 0 0 0;">Show this live receipt to the conductor.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    let totalFare = 0;
+    
+    function calcFare() { 
+        let from = document.getElementById('fromStop').value;
+        let to = document.getElementById('toStop').value;
+        let adult = parseInt(document.getElementById('adultCount').value);
+        let child = parseInt(document.getElementById('childCount').value);
+        
+        let baseFare = 0;
+        
+        if (to == "0") {
+            baseFare = 0;
+        } else if (from === to) {
+            baseFare = 0;
+            alert("Source and Destination cannot be the same!");
+        } else if ((from === "Yeshwanthpur" && to === "Krishnarajapura") || (from === "Krishnarajapura" && to === "Yeshwanthpur")) {
+            baseFare = 70.0; // ಫುಲ್ ಟಿಕೆಟ್ ದರ
+        } else {
+            baseFare = 20.0; // ಬೇರೆ ರೂಟ್‌ಗಳಿಗೆ ಬೇಸ್ ದರ
+        }
+        
+        // Adult ಗೆ ಫುಲ್ ರೇಟ್, Child ಗೆ ಅರ್ಧ ರೇಟ್ (baseFare / 2)
+        totalFare = (baseFare * adult) + ((baseFare / 2) * child);
+        document.getElementById('fareText').innerText = "Fare: ₹" + totalFare.toFixed(1); 
+    }
+
+    function goToStep(step) {
+        let from = document.getElementById('fromStop').value;
+        let to = document.getElementById('toStop').value;
+        let adult = document.getElementById('adultCount').value;
+        let child = document.getElementById('childCount').value;
+        
+        if(step === 3 && (totalFare == 0 || from === to)) { 
+            alert("Please select a valid destination!"); 
+            return; 
+        }
+        if(step === 3 && adult == 0 && child == 0) {
+            alert("Please select at least 1 passenger!");
+            return;
+        }
+        
+        document.getElementById('step1').style.display = 'none';
+        document.getElementById('step2').style.display = 'none';
+        document.getElementById('step3').style.display = 'none';
+        document.getElementById('step4').style.display = 'none';
+        document.getElementById('step' + step).style.display = 'block';
+        
+        if(step === 3) {
+            document.getElementById('payAmount').innerText = "₹" + totalFare.toFixed(1);
+            document.getElementById('upiPin').value = "";
+        }
+        if(step === 4) {
+            document.getElementById('tktFrom').innerText = from;
+            document.getElementById('tktTo').innerText = to;
+            
+            // ಟಿಕೆಟ್ ಮೇಲೆ Adult ಮತ್ತು Child ಕೌಂಟ್ ಪ್ರಿಂಟ್ ಮಾಡುವುದು
+            document.getElementById('tktPassengers').innerText = `Adult: ${adult}, Child: ${child}`;
+            document.getElementById('tktFare').innerText = "₹" + totalFare.toFixed(1);
+            
+            generateOfficialTicketDetails();
+        }
+    }
+    
+    function generateOfficialTicketDetails() {
+        let now = new Date();
+        
+        let day = now.getDate().toString().padStart(2, '0');
+        let month = (now.getMonth() + 1).toString().padStart(2, '0');
+        let year = now.getFullYear();
+        let hours = now.getHours().toString().padStart(2, '0');
+        let minutes = now.getMinutes().toString().padStart(2, '0');
+        
+        let issuedStr = `${day}-${month}-${year}, ${hours}:${minutes}`;
+        document.getElementById('tktIssued').innerText = issuedStr;
+        
+        let randomSecs = Math.floor(1000000000 + Math.random() * 9000000000);
+        let ticketNoStr = `${day}${month}${year}${hours}${minutes}T01${randomSecs}`;
+        document.getElementById('tktNo').innerText = ticketNoStr;
+    }
+</script>
+</body>
+</html>
